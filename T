@@ -32,16 +32,19 @@ function RemoteDecoder:DecryptAndExecute(encrypted_str)
         end
     end
     
-    local raw_bytecode = table.concat(decrypted_bytes)
-    local func, err = loadstring(raw_bytecode)
-    raw_bytecode = nil
+    local raw_script = table.concat(decrypted_bytes)
+    
+    -- Loadstring chạy chuỗi text thô được tạo ra trực tiếp trong RAM
+    local func, err = loadstring(raw_script)
+    raw_script = nil
     collectgarbage("collect")
     
     if func then
         return func
     else
-        error("Bẻ khóa thất bại hoặc Bytecode không hợp lệ!")
+        error("Lỗi biên dịch script nội bộ: " .. tostring(err))
     end
 end
 
 return RemoteDecoder
+
