@@ -19,35 +19,29 @@ function RemoteDecoder:DecryptAndExecute(encrypted_str)
     local decrypted_bytes = {}
     local total_tokens = #tokens
     
-    -- Giải mã cặp 2 số chung 1 key bằng toán tử ~ tương thích mọi môi trường
     for i = 1, total_tokens, 2 do
         local pair_index = math.floor((i - 1) / 2) + 1
         local xor_key = GetXorModifier(pair_index)
         
-        -- Số thứ nhất
-        local dec1 = tokens[i] ~ xor_key
+        local dec1 = bit32.bxor(tokens[i], xor_key)
         table.insert(decrypted_bytes, string.char(dec1))
         
-        -- Số thứ hai
         if i + 1 <= total_tokens then
-            local dec2 = tokens[i + 1] ~ xor_key
+            local dec2 = bit32.bxor(tokens[i + 1], xor_key)
             table.insert(decrypted_bytes, string.char(dec2))
         end
     end
     
-    local raw_script = table.concat(decrypted_bytes)
-    
-    -- Nạp vào RAM và dọn rác
-    local func, err = loadstring(raw_script)
-    raw_script = nil
+    local raw_bytecode = table.concat(decrypted_bytes)
+    local func, err = loadstring(raw_bytecode)
+    raw_bytecode = nil
     collectgarbage("collect")
     
     if func then
         return func
     else
-        error("Deobfuscate failed: " .. tostring(err))
+        error("Bẻ khóa thất bại hoặc Bytecode không hợp lệ!")
     end
 end
 
 return RemoteDecoder
-
