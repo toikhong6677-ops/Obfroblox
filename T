@@ -1,9 +1,29 @@
 local RemoteDecoder = {}
 
+-- Hệ thống mã hóa lớp ngoài (Cố định)
 local SECRET_KEY = "20@bnhkobt"
 local ALPHABET = "QMabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$"
 
+-- [ANTI-HOOK] Kiểm tra hàm hệ thống có bị can thiệp không
+local function IsHooked(func)
+    local info = debug.getinfo(func)
+    if info.what ~= "C" or info.source ~= "=[C]" then
+        return true -- Hàm đã bị thay đổi bởi Exploit/Hacker
+    end
+    return false
+end
+
+-- [JUNK CODE] Luồng giả lập làm nhiễu công cụ dịch ngược
+local function JunkFlow()
+    local x = 0
+    for i = 1, 100 do
+        x = x + math.sin(i) * math.cos(i)
+    end
+    if x == 99999 then return "junk" end
+end
+
 local function GetXorModifier(index)
+    JunkFlow()
     local key_len = #SECRET_KEY
     local char_1 = string.byte(SECRET_KEY, ((index - 1) % key_len) + 1)
     local char_2 = string.byte(ALPHABET, (index % #ALPHABET) + 1)
@@ -11,6 +31,11 @@ local function GetXorModifier(index)
 end
 
 function RemoteDecoder:DecryptAndExecute(encrypted_str)
+    -- Kiểm tra bảo mật ngay khi kích hoạt
+    if IsHooked(loadstring) or IsHooked(string.byte) or IsHooked(bit32.bxor) then
+        while true do end -- Treo cứng game của thằng định dump code
+    end
+
     local tokens = {}
     for num in string.gmatch(encrypted_str, "[^-]+") do
         table.insert(tokens, tonumber(num))
@@ -19,6 +44,7 @@ function RemoteDecoder:DecryptAndExecute(encrypted_str)
     local decrypted_bytes = {}
     local total_tokens = #tokens
     
+    -- Vòng lặp giải mã cốt lõi
     for i = 1, total_tokens, 2 do
         local pair_index = math.floor((i - 1) / 2) + 1
         local xor_key = GetXorModifier(pair_index)
@@ -34,6 +60,27 @@ function RemoteDecoder:DecryptAndExecute(encrypted_str)
     
     local raw_script = table.concat(decrypted_bytes)
     
+    -- Xóa sạch dấu vết vùng nhớ tạm
+    decrypted_bytes = nil
+    tokens = nil
+    
+    -- Gọi hàm ẩn danh khép kín
+    local func, err = loadstring(raw_script)
+    raw_script = nil
+    collectgarbage("collect")
+    
+    if func then
+        return func
+    else
+        error("Execution Core Corrupted.")
+    end
+end
+
+-- Nhồi thêm đống bảng rác ở cuối để kéo dài file ra bẻ gãy mắt phân tích tĩnh
+RemoteDecoder["_junk_meta"] = {14, 88, 92, 101, 23, 54, 76, 12, 99, 43, 21}
+for i = 1, 50 do RemoteDecoder["junk_"..i] = function() return i * 2 end end
+
+return RemoteDecoder
     -- Loadstring chạy chuỗi text thô được tạo ra trực tiếp trong RAM
     local func, err = loadstring(raw_script)
     raw_script = nil
