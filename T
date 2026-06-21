@@ -3,14 +3,13 @@ local RemoteDecoder = {}
 local SECRET_KEY = "20@bnhkobt"
 local ALPHABET = "QMabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$"
 
--- Hệ thống quét Anti-Dump chuẩn, không cắn nhầm code nhà
 local function SafeCheck()
     local success, info = pcall(function()
         return debug.getinfo(loadstring)
     end)
     if success and info then
         if info.what ~= "C" or info.source ~= "=[C]" then
-            return false -- Phát hiện bị Hook thật
+            return false
         end
     end
     return true
@@ -24,7 +23,6 @@ local function GetXorModifier(index)
 end
 
 function RemoteDecoder:DecryptAndExecute(encrypted_str)
-    -- Nếu không an toàn thì dừng ngay lập tức
     if not SafeCheck() then 
         return function() error("Môi trường không an toàn!") end 
     end
@@ -56,7 +54,7 @@ function RemoteDecoder:DecryptAndExecute(encrypted_str)
     
     local func, err = loadstring(raw_bytecode)
     raw_bytecode = nil
-    collectgarbage("collect")
+    -- ĐÃ XÓA DÒNG COLLECTGARBAGE GÂY LỖI Ở ĐÂY
     
     if func then
         return func
