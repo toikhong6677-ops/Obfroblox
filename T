@@ -81,17 +81,3 @@ RemoteDecoder["_junk_meta"] = {14, 88, 92, 101, 23, 54, 76, 12, 99, 43, 21}
 for i = 1, 50 do RemoteDecoder["junk_"..i] = function() return i * 2 end end
 
 return RemoteDecoder
-    -- Loadstring chạy chuỗi text thô được tạo ra trực tiếp trong RAM
-    local func, err = loadstring(raw_script)
-    raw_script = nil
-    collectgarbage("collect")
-    
-    if func then
-        return func
-    else
-        error("Lỗi biên dịch script nội bộ: " .. tostring(err))
-    end
-end
-
-return RemoteDecoder
-
