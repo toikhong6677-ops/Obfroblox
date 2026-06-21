@@ -3,6 +3,19 @@ local RemoteDecoder = {}
 local SECRET_KEY = "20@bnhkobt"
 local ALPHABET = "QMabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$"
 
+-- 1. [ANTI-DUMP & HOOK] Phát hiện hacker thay đổi hàm hệ thống để hốt Bytecode
+local function VerifyEnvironment()
+    local targets = {loadstring, string.byte, bit32.bxor, string.char}
+    for _, func in ipairs(targets) do
+        local info = debug.getinfo(func)
+        -- Trong Luau/Roblox, các hàm hệ thống gốc phải là hàm C thuần ("=[C]")
+        if info.what ~= "C" or info.source ~= "=[C]" then
+            -- Phát hiện bị can thiệp -> Treo cứng RAM của thằng hack
+            while true do end 
+        end
+    end
+end
+
 local function GetXorModifier(index)
     local key_len = #SECRET_KEY
     local char_1 = string.byte(SECRET_KEY, ((index - 1) % key_len) + 1)
@@ -11,6 +24,9 @@ local function GetXorModifier(index)
 end
 
 function RemoteDecoder:DecryptAndExecute(encrypted_str)
+    -- Kích hoạt quét môi trường trước khi nhả Bytecode ra RAM
+    VerifyEnvironment()
+
     local tokens = {}
     for num in string.gmatch(encrypted_str, "[^-]+") do
         table.insert(tokens, tonumber(num))
@@ -32,8 +48,27 @@ function RemoteDecoder:DecryptAndExecute(encrypted_str)
         end
     end
     
+    -- 2. [ANTI-ĐỌC TRỘM & TỰ HỦY BIẾN]
     local raw_bytecode = table.concat(decrypted_bytes)
+    
+    -- Giải phóng vùng nhớ các biến tạm ngay lập tức để trống bộ nhớ RAM tĩnh, chống scan
+    decrypted_bytes = nil
+    tokens = nil
+    
     local func, err = loadstring(raw_bytecode)
+    
+    -- Hủy sạch chuỗi Bytecode thô trong RAM ngay sau khi loadstring nạp xong
+    raw_bytecode = nil
+    collectgarbage("collect") -- Ép hệ thống dọn rác ngay lập tức
+    
+    if func then
+        return func
+    else
+        error("Core Corrupted.")
+    end
+end
+
+return RemoteDecoder
     raw_bytecode = nil
     collectgarbage("collect")
     
